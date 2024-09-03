@@ -5,3 +5,36 @@ class employeeSerializers(serializers.ModelSerializer):
     class Meta:
         model = Employees
         fields = '__all__'
+        
+class loginSerializers(serializers.ModelSerializer):
+    employee = employeeSerializers()
+    class Meta:
+        model = Login
+        fields = '__all__'
+ 
+class monthSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = Month
+        fields = '__all__'
+        
+class statusSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = Status
+        fields = "__all__"
+               
+class bonusSerializers(serializers.ModelSerializer):
+    employee = employeeSerializers()
+    bonus_month = monthSerializers()
+    status = statusSerializers()
+    class Meta:
+        model = Bonus
+        fields = '__all__'
+        
+class reductionSerializers(serializers.ModelSerializer):
+    employee = employeeSerializers()
+    reduction_month = monthSerializers()
+    status = statusSerializers()
+    class Meta:
+        model = Reduction
+        fields = '__all__'
+    

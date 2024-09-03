@@ -82,7 +82,33 @@ def employees(request,id=0):
                 loginModel.username = employee_id
                 loginModel.password = employee_password
                 loginModel.save()
+                employeeleaveModel = EmployeeLeave()
+                leavestatusMonthly = LeavePolicyMonthly.objects.last()
+                leavestatusYearly = LeavePolicyYearly.objects.last()
+                thisMonth = datetime.now().month
+                thisYear = datetime.now().year
+                employeeleaveModel.employee = employeeId
+                employeeleaveModel.casual_leaves_monthly = leavestatusMonthly.casual_leaves
+                employeeleaveModel.casual_leaves_yr = leavestatusYearly.casual_leaves
+                employeeleaveModel.sick_leaves_monthly = leavestatusMonthly.sick_leaves
+                employeeleaveModel.sick_leaves_yr = leavestatusYearly.sick_leaves
+                employeeleaveModel.half_day_leaves_monthly = leavestatusMonthly.half_day_leaves
+                employeeleaveModel.half_day_leaves_yr = leavestatusYearly.half_day_leaves
+                employeeleaveModel.for_year = thisYear
+                employeeleaveModel.for_month = Month.objects.get(month_id=thisMonth)
+                employeeleaveModel.excess_leave = 0
+                employeeleaveModel.save()
                 return JsonResponse({"success":True},status=201)
+            except Employees.DoesNotExist:
+                return JsonResponse({"error": "Employee not found"}, status=404)
+            except Login.DoesNotExist:
+                return JsonResponse({"error": "Login information not found"}, status=404)
+            except LeavePolicyMonthly.DoesNotExist:
+                return JsonResponse({"error": "Monthly leave policy not found"}, status=404)
+            except LeavePolicyYearly.DoesNotExist:
+                return JsonResponse({"error": "Yearly leave policy not found"}, status=404)
+            except Month.DoesNotExist:
+                return JsonResponse({"error": "Month not found"}, status=404)
             except Exception as e:
                 return JsonResponse ({"error":str(e)},status=500)
     elif request.method == "GET":
@@ -121,6 +147,7 @@ def bonus(request,id=0):
         amount = request.POST.get('amount')
         reason = request.POST.get('reason')
         bonus_month = datetime.now().month
+        date_today = date.today()
         print(bonus_month)
         try:
             bonusModel = Bonus()
@@ -128,6 +155,8 @@ def bonus(request,id=0):
             bonusModel.bonus_amount = amount
             bonusModel.bonus_reason = reason
             bonusModel.bonus_month = Month.objects.get(month_id=bonus_month)
+            bonusModel.added_on = date_today
+            bonusModel.status = Status.objects.get(status_id=1)
             bonusModel.save()
             return JsonResponse({"success":True},status=201)
         except Exception as e:
@@ -150,12 +179,15 @@ def reduction(request,id=0):
         amount = request.POST.get('amount')
         reason = request.POST.get('reason')
         reduction_month = datetime.now().month
+        date_today = date.today()
         try:
             reductionModel=Reduction()
             reductionModel.employee = Employees.objects.get(employee_id=employee)
             reductionModel.reduction_amount = amount
             reductionModel.reduction_reason = reason
             reductionModel.reduction_month = Month.objects.get(month_id=reduction_month)
+            reductionModel.added_on = date_today
+            reductionModel.status = Status.objects.get(status_id=1)
             reductionModel.save()
             return JsonResponse({"success":True},status=200)
         except Exception as e:

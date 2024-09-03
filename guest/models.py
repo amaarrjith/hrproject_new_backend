@@ -88,8 +88,12 @@ class LeavePolicyMonthly(models.Model):
 class EmployeeLeave(models.Model):
     id = models.AutoField(primary_key=True)
     employee = models.ForeignKey(Employees, on_delete=models.CASCADE)
-    casual_leaves = models.IntegerField()
-    sick_leaves = models.IntegerField()
-    half_day_leaves = models.IntegerField()
+    casual_leaves_yr = models.IntegerField()
+    sick_leaves_yr = models.IntegerField()
+    half_day_leaves_yr = models.IntegerField()
+    casual_leaves_monthly = models.IntegerField()
+    sick_leaves_monthly = models.IntegerField()
+    half_day_leaves_monthly = models.IntegerField()
     excess_leave = models.IntegerField()
-    
+    for_month = models.ForeignKey(Month, on_delete=models.CASCADE)
+    for_year = models.IntegerField()

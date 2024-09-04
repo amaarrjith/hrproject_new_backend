@@ -7,6 +7,8 @@ urlpatterns = [
     path('employees',views.employees,name="employees"),
     path('employees/<id>',views.employees,name="employees"),
     path('bonus',views.bonus,name="bonus"),
-    path('reduction',views.reduction,name="reduction")
+    path('reduction',views.reduction,name="reduction"),
+    path('salary',views.salary,name="salary"),
+    path('viewsalary',views.viewsalary,name="viewsalary")
     
 ]

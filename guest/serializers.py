@@ -37,4 +37,12 @@ class reductionSerializers(serializers.ModelSerializer):
     class Meta:
         model = Reduction
         fields = '__all__'
+
+class salarySerializer(serializers.ModelSerializer):
+    employee = employeeSerializers()
+    salary_month = monthSerializers()
+    status = statusSerializers()
+    class Meta:
+        model = employeeSalary
+        fields = '__all__'
     

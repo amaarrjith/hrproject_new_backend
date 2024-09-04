@@ -97,3 +97,20 @@ class EmployeeLeave(models.Model):
     excess_leave = models.IntegerField()
     for_month = models.ForeignKey(Month, on_delete=models.CASCADE)
     for_year = models.IntegerField()
+
+    def __str__(main):
+        return main.id
+
+class employeeSalary(models.Model):
+    salary_id = models.AutoField(primary_key=True)
+    employee = models.ForeignKey(Employees,on_delete=models.CASCADE)
+    salary_month = models.ForeignKey(Month,on_delete=models.CASCADE)
+    base_package = models.BigIntegerField()
+    total_reduction = models.BigIntegerField()
+    total_bonus = models.BigIntegerField()
+    leave_reductions = models.BigIntegerField()
+    generated_salary = models.BigIntegerField()
+    status = models.ForeignKey(Status,on_delete=models.CASCADE)
+
+    def __str__(main):
+        return main.salary_id

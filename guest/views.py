@@ -1,9 +1,11 @@
+import math
 from django.http import JsonResponse
 from django.shortcuts import render
 from guest.models import *
 from django.views.decorators.csrf import csrf_exempt
 from datetime import date
 from datetime import datetime
+import calendar
 
 from guest.serializers import *
 # Create your views here.
@@ -200,6 +202,65 @@ def reduction(request,id=0):
         except Exception as e:
             return JsonResponse({"error":str(e)},status=500)
         
+def salary(request,id=0):
+    if request.method =="GET":
+        try:
+            thisMonth = datetime.now().month
+            thisYear = datetime.now().year
+            salaryMonth = int(thisMonth)-1
+            numDays = calendar.monthrange(thisYear,salaryMonth)
+            daysperMonth = numDays[1]
+            getEmployee = Employees.objects.all()   
+            for employee in getEmployee:
+                if employeeSalary.objects.filter(employee=employee.employee_id,salary_month=salaryMonth).exists():
+                    None
+                else:
+                    payperDay = int(employee.base_package)/int(daysperMonth)
+                    bonusModel = Bonus.objects.filter(employee=employee,bonus_month=salaryMonth)
+                    reductionModel = Reduction.objects.filter(employee=employee,reduction_month=salaryMonth)
+                    
+                    
+
+                    totalBonus = sum(bonus.bonus_amount for bonus in bonusModel)
+                    totalReduction = sum(reduction.reduction_amount for reduction in reductionModel)
+                    try:
+                        employeeleaveModel = EmployeeLeave.objects.get(employee=employee,for_month=salaryMonth)
+                        leaveReduction = int(employeeleaveModel.excess_leave)*int(payperDay)
+                    except EmployeeLeave.DoesNotExist:
+                        leaveReduction = 0
+                    print(totalReduction)
+                    totalSalary = int(employee.base_package)+int(totalBonus)-int(totalReduction)-int(leaveReduction)
+                    salaryModel = employeeSalary()
+                    salaryModel.employee = Employees.objects.get(employee_id=employee.employee_id)
+                    salaryModel.base_package = employee.base_package
+                    salaryModel.salary_month = Month.objects.get(month_id = salaryMonth)
+                    salaryModel.total_bonus = totalBonus
+                    salaryModel.total_reduction = totalReduction
+                    
+                    salaryModel.leave_reductions = leaveReduction
+                    salaryModel.generated_salary = math.floor(totalSalary)
+                    salaryModel.status = Status.objects.get(status_id=1)
+                    salaryModel.save()
+                    return JsonResponse({"success":True},status=201)
+        except Exception as e:
+            return JsonResponse({"error":str(e)},status=500)
+        
+def viewsalary(request):
+    if request.method == "GET":
+        try:
+            salaryDetails = employeeSalary.objects.all()
+            serializer = salarySerializer(salaryDetails,many=True)
+            return JsonResponse(serializer.data,safe=False,status=200)
+        except Exception as e:
+            return JsonResponse({"error":str(e)},status=500)
+    
+# def generatesalary(request):
+
+        
+            
+            
+        
+
         
     
                 

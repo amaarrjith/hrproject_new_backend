@@ -94,7 +94,13 @@ class EmployeeLeave(models.Model):
     casual_leaves_monthly = models.IntegerField()
     sick_leaves_monthly = models.IntegerField()
     half_day_leaves_monthly = models.IntegerField()
-    excess_leave = models.IntegerField()
+    excess_leave_monthcl = models.IntegerField()
+    excess_leave_monthsl = models.IntegerField()
+    excess_leave_monthhalf = models.IntegerField()
+    excess_leave_yrcl = models.IntegerField()
+    excess_leave_yrsl = models.IntegerField()
+    excess_leave_yrhalf = models.IntegerField()
+    
     for_month = models.ForeignKey(Month, on_delete=models.CASCADE)
     for_year = models.IntegerField()
 
@@ -114,3 +120,20 @@ class employeeSalary(models.Model):
 
     def __str__(main):
         return main.salary_id
+    
+class leavetype(models.Model):
+    leave_id = models.AutoField(primary_key=True)
+    leave_name = models.CharField(max_length=50)
+    
+    def __str__(main):
+        return main.leave_name
+
+class leaveRequests(models.Model):
+    leave_id = models.AutoField(primary_key=True)
+    employee = models.ForeignKey(Employees,on_delete=models.CASCADE)
+    leave_date = models.DateField((""), auto_now=False, auto_now_add=False)
+    reason = models.ForeignKey(leavetype,on_delete=models.CASCADE)
+    status = models.ForeignKey(Status,on_delete=models.CASCADE)
+    
+    def __str__(main):
+        return main.leave_id

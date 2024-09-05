@@ -45,4 +45,26 @@ class salarySerializer(serializers.ModelSerializer):
     class Meta:
         model = employeeSalary
         fields = '__all__'
-    
+
+class leavetypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = leavetype
+        fields = '__all__'  
+         
+class leaverequestsSerializer(serializers.ModelSerializer):
+    employee = employeeSerializers()
+    status = statusSerializers()
+    reason = leavetypeSerializer()
+    class Meta:
+        model = leaveRequests
+        fields = '__all__'
+        
+class leavestatusYearlySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LeavePolicyYearly
+        fields = '__all__'
+                
+class leavestatusMonthlySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LeavePolicyMonthly
+        fields = '__all__'

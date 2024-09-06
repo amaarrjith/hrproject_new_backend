@@ -18,7 +18,9 @@ def login(request,id=0):
         password = request.POST.get('password')
         try:
             if Login.objects.filter(username=username,password=password).exists():
-                return JsonResponse({"success":True},status=200)
+                employeeDetails = Login.objects.get(username=username)
+                employeeID = employeeDetails.employee.employee_id
+                return JsonResponse({"success":True,"employeeID":employeeID},status=200)
             if Admin.objects.filter(username=username,password=password).exists():
                 return JsonResponse({"admin":True},status=200)
             else:
@@ -174,12 +176,17 @@ def bonus(request,id=0):
         except Exception as e:
             return JsonResponse({"error":str(e)},status=500)
     elif request.method == "GET":
-        try:
-            bonusDetails = Bonus.objects.select_related('bonus_month','employee','status').all()
+        if id:
+            bonusDetails = Bonus.objects.select_related('bonus_month','employee','status').filter(employee_id=id)
             serializers = bonusSerializers(bonusDetails,many=True)
             return JsonResponse(serializers.data,safe=False,status=200)
-        except Exception as e:
-            return JsonResponse({"error":str(e)},status=500)
+        else:
+            try:
+                bonusDetails = Bonus.objects.select_related('bonus_month','employee','status').all()
+                serializers = bonusSerializers(bonusDetails,many=True)
+                return JsonResponse(serializers.data,safe=False,status=200)
+            except Exception as e:
+                return JsonResponse({"error":str(e)},status=500)
         
     else:
         return JsonResponse({"error":"Invalid Method"},status=500)
@@ -205,12 +212,17 @@ def reduction(request,id=0):
         except Exception as e:
             return JsonResponse({"error":str(e)},status=500)
     elif request.method == "GET":
-        try:
-            reductionDetails = Reduction.objects.select_related('reduction_month','employee','status').all()
+        if id:
+            reductionDetails = Reduction.objects.select_related('reduction_month','employee','status').filter(employee_id=id)
             serializer = reductionSerializers(reductionDetails,many=True)
             return JsonResponse(serializer.data,safe=False,status=200)
-        except Exception as e:
-            return JsonResponse({"error":str(e)},status=500)
+        else:
+            try:
+                reductionDetails = Reduction.objects.select_related('reduction_month','employee','status').all()
+                serializer = reductionSerializers(reductionDetails,many=True)
+                return JsonResponse(serializer.data,safe=False,status=200)
+            except Exception as e:
+                return JsonResponse({"error":str(e)},status=500)
         
 def salary(request):
     if request.method == "GET":
@@ -256,15 +268,20 @@ def salary(request):
 
         
         
-def viewsalary(request):
+def viewsalary(request,id=0):
     if request.method == "GET":
-        try:
-            salaryDetails = employeeSalary.objects.all()
+        if id:
+            salaryDetails = employeeSalary.objects.filter(employee=id)
             serializer = salarySerializer(salaryDetails,many=True)
-            
             return JsonResponse(serializer.data,safe=False,status=200)
-        except Exception as e:
-            return JsonResponse({"error":str(e)},status=500)
+        else:
+            try:
+                salaryDetails = employeeSalary.objects.all()
+                serializer = salarySerializer(salaryDetails,many=True)
+                
+                return JsonResponse(serializer.data,safe=False,status=200)
+            except Exception as e:
+                return JsonResponse({"error":str(e)},status=500)
     
 def generatesalary(request,id=0):
     if request.method =="GET":
@@ -289,31 +306,40 @@ def generatesalary(request,id=0):
             except Exception as e:
                 return JsonResponse({"error":str(e)},status=500)
 
+@csrf_exempt
 def leaveRequest(request,id=0):
     if request.method == "POST":
         employee_id = id
+        print(employee_id)
         leaveDate = request.POST.get('date')
         leaveReason = request.POST.get('reason')
         try:
+            
             leaveModel = leaveRequests()
             leaveModel.employee = Employees.objects.get(employee_id=employee_id)
             leaveModel.leave_date = leaveDate
             leaveModel.reason = leavetype.objects.get(leave_id=leaveReason)
             leaveModel.status = Status.objects.get(status_id=3)
             leaveModel.save()
+            return JsonResponse({"success":True},status=200)
         except Employees.DoesNotExist:
             return JsonResponse({"error":"Does Not Exists"},status=404)
         except Exception as e:
             return JsonResponse({"error":str(e)})
-        return JsonResponse({"success":True},status=200)
+        
     
     elif request.method == "GET":
-        try:
-            getallRequests = leaveRequests.objects.select_related('employee','status','reason').all()
-            serializer = leaverequestsSerializer(getallRequests,many=True)
-            return JsonResponse(serializer.data,safe=False,status=200)
-        except Exception as e:
-            return JsonResponse({"error":str(e)},status=500)
+        if id:
+            getRequests = leaveRequests.objects.filter(employee=id)
+            serializer = leaverequestsSerializer(getRequests,many=True)
+            return JsonResponse(serializer.data,safe=False)
+        else:
+            try:
+                getallRequests = leaveRequests.objects.select_related('employee','status','reason').all()
+                serializer = leaverequestsSerializer(getallRequests,many=True)
+                return JsonResponse(serializer.data,safe=False,status=200)
+            except Exception as e:
+                return JsonResponse({"error":str(e)},status=500)
         
 def approveLeave(request,id=0,leaveid=0):
     if request.method == "GET":
@@ -465,6 +491,125 @@ def generatesalarymonth(request):
         salary_model.status = Status.objects.get(status_id=2)
         salary_model.save()
         return JsonResponse({"success":True},status=200)
+    
+def getallleavetype(request):
+    if request.method == "GET":
+        getallLeave = leavetype.objects.all()
+        serializer = leavetypeSerializer(getallLeave,many=True)
+        return JsonResponse(serializer.data,safe=False)
+    
+def remainingleave(request,id=0):
+    if request.method == "GET":
+        # try:
+            thisMonth = datetime.now().month
+            thisYear = datetime.now().year
+            employeeleaveStatus= EmployeeLeave.objects.get(employee_id=id,for_month_id=thisMonth,for_year=thisYear)
+            clthisYear = employeeleaveStatus.casual_leaves_yr
+            clthisMonth = employeeleaveStatus.casual_leaves_monthly
+            slthisYear = employeeleaveStatus.sick_leaves_yr
+            slthisMonth = employeeleaveStatus.sick_leaves_monthly
+            halfdaythisMonth = employeeleaveStatus.half_day_leaves_monthly
+            halfdaythisYear = employeeleaveStatus.half_day_leaves_yr
+            leavepolicyMonthly = LeavePolicyMonthly.objects.last()
+            leavepolicyYearly = LeavePolicyYearly.objects.last()
+            clperYear = leavepolicyYearly.casual_leaves
+            clperMonth = leavepolicyMonthly.casual_leaves
+            slperYear = leavepolicyYearly.sick_leaves
+            slperMonth = leavepolicyMonthly.sick_leaves
+            halfdaysperYear = leavepolicyYearly.half_day_leaves
+            halfdaysperMonth = leavepolicyMonthly.half_day_leaves
+            remainingclthisYear = clperYear - clthisYear
+            remainingclthisMonth = clperMonth - clthisMonth
+            if remainingclthisYear < 0:
+                remainingclthisYear = 0
+            if remainingclthisMonth < 0:
+                remainingclthisMonth = 0
+            remainingslthisYear = slperYear - slthisYear
+            remainingslthisMonth = slperMonth - slthisMonth
+            if remainingslthisYear < 0:
+                remainingslthisYear = 0
+            if remainingslthisMonth < 0:
+                remainingslthisMonth = 0
+            remaininghalfdaysthisYear = halfdaysperYear - halfdaythisYear
+            remaininghalfdaysthisMonth = halfdaysperMonth - halfdaythisMonth
+            if remaininghalfdaysthisYear < 0:
+                remaininghalfdaysthisYear = 0
+            if remaininghalfdaysthisMonth < 0:
+                remaininghalfdaysthisMonth = 0
+                
+            data = {
+                'clYear':remainingclthisYear,
+                'clMonth':remainingclthisMonth,
+                'slYear':remainingslthisYear,
+                'slMonth':remainingslthisMonth,
+                'halfYear':remaininghalfdaysthisYear,
+                'halfMonth':remaininghalfdaysthisMonth
+            }
+            print(data)
+            return JsonResponse(data,safe=False,status=200)
+        
+def leavereductions(request,id=0):
+    if request.method == "GET":
+        if id:
+           leaveReductionModel = leaveReductions.objects.filter(employee_id=id)
+           serializer =  leavereductionSerializer(leaveReductionModel,many=True)
+           return JsonResponse(serializer.data,safe=False,status=200)
+        else:
+            thisMonth = datetime.now().month
+            thisYear = datetime.now().year
+            if thisMonth == 1:
+                salaryMonth = 12
+                salaryYear = thisYear - 1
+            else:
+                salaryMonth = thisMonth - 1
+                salaryYear = thisYear
+            
+            
+            monthDetails = Month.objects.get(month_id=salaryMonth)
+            employeeDetails = Employees.objects.all()
+            for employees in employeeDetails:
+                id = employees.employee_id
+                basePackage = employees.base_package
+                try:
+                    
+                    employeeleaveStatus = EmployeeLeave.objects.get(employee_id=id, for_month_id=monthDetails.month_id, for_year=salaryYear)
+                except EmployeeLeave.DoesNotExist:
+                    continue  
+                
+                
+                excessClYear = employeeleaveStatus.excess_leave_yrcl
+                excessSlYear = employeeleaveStatus.excess_leave_yrsl
+                excessHalfDaysYear = employeeleaveStatus.excess_leave_yrhalf
+                excessClMonth = employeeleaveStatus.excess_leave_monthcl
+                excessSlMonth = employeeleaveStatus.excess_leave_monthsl
+                excessHalfDaysMonth = employeeleaveStatus.excess_leave_monthhalf
+                totalExcesss = excessClYear + excessSlYear + excessHalfDaysYear + excessClMonth + excessSlMonth + excessHalfDaysMonth
+
+                
+                numDays = calendar.monthrange(salaryYear, salaryMonth)
+                daysperMonth = numDays[1]
+                payperDay = basePackage / daysperMonth
+
+                
+                if leaveReductions.objects.filter(employee_id=id, for_month=monthDetails, for_year=thisYear).exists():
+                    continue  
+                leaveReductionModel = leaveReductions()
+                leaveReductionModel.employee = Employees.objects.get(employee_id=id)
+                leaveReductionModel.pay_per_day = payperDay
+                leaveReductionModel.total_excess_leave = totalExcesss
+                leaveReductionModel.reduction_amount = payperDay * totalExcesss
+                leaveReductionModel.excess_leave_monthcl = excessClMonth
+                leaveReductionModel.excess_leave_monthhalf = excessHalfDaysMonth
+                leaveReductionModel.excess_leave_monthsl = excessSlMonth
+                leaveReductionModel.excess_leave_yrcl = excessClYear
+                leaveReductionModel.excess_leave_yrhalf = excessHalfDaysYear
+                leaveReductionModel.excess_leave_yrsl = excessSlYear
+                leaveReductionModel.for_month = monthDetails
+                leaveReductionModel.for_year = thisYear
+                leaveReductionModel.save()
+            return JsonResponse({"success":True})
+            
+        
 
         
         

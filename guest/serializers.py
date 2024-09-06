@@ -68,3 +68,8 @@ class leavestatusMonthlySerializer(serializers.ModelSerializer):
     class Meta:
         model = LeavePolicyMonthly
         fields = '__all__'
+
+class leavereductionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = leaveReductions
+        fields = '__all__'

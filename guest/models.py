@@ -137,3 +137,21 @@ class leaveRequests(models.Model):
     
     def __str__(main):
         return main.leave_id
+    
+class leaveReductions(models.Model):
+    employee = models.ForeignKey(Employees,on_delete=models.CASCADE)
+    
+    excess_leave_monthcl = models.IntegerField()
+    excess_leave_monthsl = models.IntegerField()
+    excess_leave_monthhalf = models.IntegerField()
+    excess_leave_yrcl = models.IntegerField()
+    excess_leave_yrsl = models.IntegerField()
+    excess_leave_yrhalf = models.IntegerField()
+    for_month = models.ForeignKey(Month, on_delete=models.CASCADE)
+    for_year = models.IntegerField()
+    total_excess_leave = models.IntegerField()
+    pay_per_day = models.BigIntegerField((""))
+    reduction_amount = models.BigIntegerField(("")) 
+    
+    def __str__(main):
+        return main.employee

@@ -25,6 +25,19 @@ urlpatterns = [
     path('getallleavetype',views.getallleavetype,name="getallleavetype"),
     path('remainingleave/<id>',views.remainingleave,name="remainingleave"),
     path('leavereductions',views.leavereductions,name="leavereductions"),
-    path('leavereductions/<id>',views.leavereductions,name="leavereductions")
+    path('leavereductions/<id>',views.leavereductions,name="leavereductions"),
+    path('forgetpassword',views.forgetPassword,name="forgetpassword"),
+    path('otpvalidation/<id>',views.otpValidation,name="otpValidation"),
+    path('changepassword/<id>',views.changePassword,name="changepassword"),
+    path('contactform/<id>',views.contactAdmin,name="contactform"),
+    path('contactform',views.contactAdmin,name="contactform"),
+    path('checkpolicy',views.checkLeavePolicy,name="checkpolicy"),
+    path('checkmonth',views.checkMonth,name="checkmonth"),
+    path('checkstatus',views.checkStatus,name="checkstatus"),
+    path('addpolicy',views.addpolicy,name="addpolicy"),
+    path('blockemployee/<id>',views.blockemployee,name="blockemployee"),
+    path('unblockemployee/<id>',views.unblockemployee,name="unblockemployee"),
+    path('count',views.count,name="count")
+    
     
 ]

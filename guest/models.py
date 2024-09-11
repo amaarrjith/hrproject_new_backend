@@ -1,7 +1,14 @@
 from django.db import models
 
 # Create your models here.
-
+class Status(models.Model):
+    status_id = models.AutoField(primary_key=True)
+    status_name = models.CharField((""), max_length=50)
+    
+    def __str__(main):
+        return main.status_name
+    
+    
 class Admin(models.Model):
     admin_id = models.AutoField(primary_key=True)
     username = models.CharField(max_length=50)
@@ -17,6 +24,8 @@ class Employees(models.Model):
     post = models.CharField((""), max_length=50)
     base_package = models.BigIntegerField((""))
     registered_date = models.DateField()
+    status = models.ForeignKey(Status,on_delete=models.CASCADE)
+    
     
     def __str__(main):
         return main.employee_name
@@ -26,6 +35,7 @@ class Login(models.Model):
     employee = models.ForeignKey(Employees,on_delete=models.CASCADE)
     username = models.CharField(max_length=50)
     password = models.CharField(max_length=50)
+    
     
     def __str__(main):
         return main.username
@@ -37,9 +47,7 @@ class Month(models.Model):
     def __str__(main):
         return main.month_name
     
-class Status(models.Model):
-    status_id = models.AutoField(primary_key=True)
-    status_name = models.CharField((""), max_length=50)
+
     
 class Bonus(models.Model):
     bonus_id = models.AutoField(primary_key=True)
@@ -155,3 +163,22 @@ class leaveReductions(models.Model):
     
     def __str__(main):
         return main.employee
+    
+class OtpFunction(models.Model):
+    otp_id = models.AutoField(primary_key=True)
+    otp = models.BigIntegerField()
+    employee = models.ForeignKey(Employees,on_delete=models.CASCADE)
+    otp_date = models.DateField()
+    otp_time = models.TimeField()
+    send_to = models.CharField(max_length=50)
+    
+    def __str__(main):
+        return main.otp_id
+    
+class AdminContact(models.Model):
+    id = models.AutoField(primary_key=True)
+    employee = models.ForeignKey(Employees,on_delete=models.CASCADE)
+    subject = models.CharField(max_length=50)
+    description = models.TextField()
+    file = models.FileField(upload_to='files/', max_length=100)
+    date = models.DateField(auto_now=False, auto_now_add=False)

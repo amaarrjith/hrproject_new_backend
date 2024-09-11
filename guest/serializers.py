@@ -1,7 +1,12 @@
 from rest_framework import serializers
 from guest.models import *
-
+class statusSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = Status
+        fields = "__all__"
+        
 class employeeSerializers(serializers.ModelSerializer):
+    status = statusSerializers()
     class Meta:
         model = Employees
         fields = '__all__'
@@ -17,10 +22,7 @@ class monthSerializers(serializers.ModelSerializer):
         model = Month
         fields = '__all__'
         
-class statusSerializers(serializers.ModelSerializer):
-    class Meta:
-        model = Status
-        fields = "__all__"
+
                
 class bonusSerializers(serializers.ModelSerializer):
     employee = employeeSerializers()
@@ -72,4 +74,15 @@ class leavestatusMonthlySerializer(serializers.ModelSerializer):
 class leavereductionSerializer(serializers.ModelSerializer):
     class Meta:
         model = leaveReductions
+        fields = '__all__'
+        
+class ContactadminSerializer(serializers.ModelSerializer):
+    employee = employeeSerializers()
+    class Meta:
+        model = AdminContact
+        fields = '__all__'
+        
+class leavepolicySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LeavePolicyYearly
         fields = '__all__'

@@ -37,7 +37,8 @@ urlpatterns = [
     path('addpolicy',views.addpolicy,name="addpolicy"),
     path('blockemployee/<id>',views.blockemployee,name="blockemployee"),
     path('unblockemployee/<id>',views.unblockemployee,name="unblockemployee"),
-    path('count',views.count,name="count")
+    path('count',views.count,name="count"),
+    path('checkleavetype',views.addLeaveType,name="addLeaveType")
     
     
 ]

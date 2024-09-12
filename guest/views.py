@@ -77,7 +77,7 @@ def employees(request,id=0):
             except Exception as e:
                 return JsonResponse({"error":str(e)},status=500)
         else:
-            try:
+            # try:
                 if Login.objects.filter(username=employee_id).exists():
                     return JsonResponse({"Done":True},status=200)
                 else:
@@ -116,18 +116,18 @@ def employees(request,id=0):
                     employeeleaveModel.excess_leave_monthhalf = 0
                     employeeleaveModel.save()
                     return JsonResponse({"success":True},status=201)
-            except Employees.DoesNotExist:
-                return JsonResponse({"error": "Employee not found"}, status=404)
-            except Login.DoesNotExist:
-                return JsonResponse({"error": "Login information not found"}, status=404)
-            except LeavePolicyMonthly.DoesNotExist:
-                return JsonResponse({"error": "Monthly leave policy not found"}, status=404)
-            except LeavePolicyYearly.DoesNotExist:
-                return JsonResponse({"error": "Yearly leave policy not found"}, status=404)
-            except Month.DoesNotExist:
-                return JsonResponse({"error": "Month not found"}, status=404)
-            except Exception as e:
-                return JsonResponse ({"error":str(e)},status=500)
+            # except Employees.DoesNotExist:
+            #     return JsonResponse({"error": "Employee not found"}, status=404)
+            # except Login.DoesNotExist:
+            #     return JsonResponse({"error": "Login information not found"}, status=404)
+            # except LeavePolicyMonthly.DoesNotExist:
+            #     return JsonResponse({"error": "Monthly leave policy not found"}, status=404)
+            # except LeavePolicyYearly.DoesNotExist:
+            #     return JsonResponse({"error": "Yearly leave policy not found"}, status=404)
+            # except Month.DoesNotExist:
+            #     return JsonResponse({"error": "Month not found"}, status=404)
+            # except Exception as e:
+            #     return JsonResponse ({"error":str(e)},status=500)
     elif request.method == "GET":
         if id:
             try:
@@ -827,8 +827,11 @@ def checkLeavePolicy(request):
             leavePolicy = LeavePolicyYearly.objects.last()
             if leavePolicy:
                 return JsonResponse({"success":False})
-        except LeavePolicyYearly.DoesNotExist:
-            return JsonResponse({"success":True})
+            else:
+                return JsonResponse({"success":True})
+        except Exception as e:
+            return JsonResponse({"error":str(e)})
+            
         
         
 def checkMonth(request):
@@ -874,7 +877,9 @@ def checkStatus(request):
                     (2,"GENERATED"),
                     (3,"NOT APPROVED"),
                     (4,"APPROVED"),
-                    (5,"DECLINED")
+                    (5,"DECLINED"),
+                    (6,"ACTIVE"),
+                    (7,"BLOCKED"),
                 ]
                 getStatus = Status()
                 for status_id , status_name in status:
@@ -942,6 +947,30 @@ def count(request):
             'leaveCount': leaveCount
         }
         return JsonResponse(data,safe=False)
+    
+def addLeaveType(request):
+    if request.method == "GET":
+        try:
+            checkLeave = leavetype.objects.last()
+            if checkLeave:
+                return JsonResponse({"success":True},status=200)
+            else:
+                leavetypes = [
+                    (1,"CASUAL LEAVE"),
+                    (2,"SICK LEAVE"),
+                    (3,"HALF DAY LEAVE"),
+                ]
+                leavetypeModel = leavetype()
+                for leave_id,leave_name in leavetypes:
+                    leavetypeModel.leave_id = leave_id
+                    leavetypeModel.leave_name = leave_name
+                    leavetypeModel.save()
+                return JsonResponse({"success":"Done"},status=200)
+        except Exception as e:
+            return JsonResponse({"error":str(e)},status=500)
+
+
+
             
         
             

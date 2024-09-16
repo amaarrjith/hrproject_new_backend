@@ -151,6 +151,7 @@ def employees(request, id=0):
         else:
             try:
                 getAllEmployees = Employees.objects.all()
+                
                 serializer = employeeSerializers(getAllEmployees, many=True)
                 return JsonResponse(serializer.data, safe=False, status=200)
             except Exception as e:
@@ -1140,6 +1141,7 @@ def checkStatus(request):
                     (5, "DECLINED"),
                     (6, "ACTIVE"),
                     (7, "BLOCKED"),
+                    (8,"MARKED")
                 ]
                 getStatus = Status()
                 for status_id, status_name in status:
@@ -1258,3 +1260,16 @@ def addLeaveType(request):
             return JsonResponse({"error": str(e)}, status=500)
     else:
         return JsonResponse({"error": "Method Not Found"}, status=404)
+    
+def attendance(request,id=0):
+    if request.method == "POST":
+        employee_id = request.POST.get('employee')
+        date = request.POST.get('date')
+        employee = Employees.objects.get(employee_id=employee_id)
+        statusInstance = Status.objects.get(status_id=8)
+        attendanceModel = Attendance()
+        attendanceModel.employee = employee
+        attendanceModel.status = statusInstance
+        attendanceModel.date = date
+        attendanceModel.save()
+        return JsonResponse({"success":True},status=201)

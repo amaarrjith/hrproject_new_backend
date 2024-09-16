@@ -182,3 +182,12 @@ class AdminContact(models.Model):
     description = models.TextField()
     file = models.FileField(upload_to='files/', max_length=100)
     date = models.DateField(auto_now=False, auto_now_add=False)
+
+    def __str__(main):
+        return main.id
+
+class Attendance(models.Model):
+    id = models.AutoField(primary_key=True)
+    employee = models.ForeignKey(Employees,on_delete=models.CASCADE)
+    date = models.DateField()
+    status = models.ForeignKey(Status,on_delete=models.CASCADE)

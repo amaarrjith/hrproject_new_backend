@@ -39,8 +39,9 @@ urlpatterns = [
     path('unblockemployee/<id>',views.unblockemployee,name="unblockemployee"),
     path('count',views.count,name="count"),
     path('checkleavetype',views.addLeaveType,name="addLeaveType"),
+    path('attendance',views.attendance,name="attendance"),
     path('attendance/<id>',views.attendance,name="attendance"),
-    path('attendance',views.attendance,name="attendance")
+    path('reportattendance/<id>',views.reportAttendance,name="reportAttendance")
     
     
 ]

@@ -72,6 +72,7 @@ class leavestatusMonthlySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class leavereductionSerializer(serializers.ModelSerializer):
+    for_month = monthSerializers()
     class Meta:
         model = leaveReductions
         fields = '__all__'
@@ -85,4 +86,11 @@ class ContactadminSerializer(serializers.ModelSerializer):
 class leavepolicySerializer(serializers.ModelSerializer):
     class Meta:
         model = LeavePolicyYearly
+        fields = '__all__'
+
+class attendanceSerializer(serializers.ModelSerializer):
+    employee = employeeSerializers()
+    status = statusSerializers()
+    class Meta:
+        model = Attendance
         fields = '__all__'

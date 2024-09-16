@@ -111,6 +111,7 @@ class EmployeeLeave(models.Model):
     
     for_month = models.ForeignKey(Month, on_delete=models.CASCADE)
     for_year = models.IntegerField()
+    status = models.ForeignKey(Status,on_delete=models.CASCADE)
 
     def __str__(main):
         return main.id

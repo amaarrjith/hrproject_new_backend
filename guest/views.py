@@ -21,9 +21,17 @@ def login(request, id=0):
             if Login.objects.filter(username=username, password=password).exists():
                 employeeDetails = Login.objects.get(username=username)
                 employeeID = employeeDetails.employee.employee_id
-                return JsonResponse(
-                    {"success": True, "employeeID": employeeID}, status=200
-                )
+                checkBlock = Employees.objects.get(employee_id=employeeID)
+                if checkBlock.status == Status.objects.get(status_id=6):
+                    return JsonResponse(
+                        {"success": True, "employeeID": employeeID}, status=200
+                    )
+                elif checkBlock.status == Status.objects.get(status_id=7):
+                    return JsonResponse(
+                        {"failure":"Done"},status=200
+                    )
+                else:
+                    return JsonResponse({"error":"Status Not Found"},status=401)
             elif Admin.objects.filter(username=username, password=password).exists():
                 return JsonResponse({"admin": True}, status=200)
             else:
@@ -285,22 +293,105 @@ def salary(request):
 
         numDays = calendar.monthrange(thisYear, salaryMonth)
         daysperMonth = numDays[1]
-        employees = Employees.objects.all()
-
-        for employee in employees:
-            try:
+        try:
+            employees = Employees.objects.all()
+            for employee in employees:
+                date = employee.registered_date
+                registeredMonth = date.month
+                print(registeredMonth)
+                if salaryMonth < registeredMonth:
+                    continue
+                elif salaryMonth == registeredMonth:
+                    registeredDate = date.day
+                    employeeWorkingDays = int(daysperMonth - registeredDate)
+                    payperDay = int(employee.base_package) / int(daysperMonth)
+                    salaryForthisMonth = math.floor(payperDay*employeeWorkingDays)
+                    
+                    
+                else:
+                    payperDay = int(employee.base_package) / int(daysperMonth)
+                    salaryForthisMonth = employee.base_package
                 salary_exists = employeeSalary.objects.filter(
                     employee=employee.employee_id, salary_month=salaryMonth
                 ).exists()
+                if salary_exists:
+                    try:
+                        salaryModel = employeeSalary.objects.get(
+                        employee=employee.employee_id, salary_month=salaryMonth,other_status=1)
+                        salaryForthisMonth = int(employee.base_package) - int(salaryModel.base_package) 
+                        bonuses = Bonus.objects.filter(
+                        employee=employee, bonus_month=salaryMonth,status_id=1
+                        )
+                        totalBonus = sum(bonus.bonus_amount for bonus in bonuses)
+                        reductions = Reduction.objects.filter(
+                            employee=employee, reduction_month=salaryMonth,status_id=1
+                        )
+                        totalReduction = sum(
+                            reduction.reduction_amount for reduction in reductions
+                        )
+                        try:
+                            employee_leave = EmployeeLeave.objects.get(
+                                employee=employee, for_month=salaryMonth,status_id = 1
+                            )
+                            excess_leave = (
+                                int(employee_leave.excess_leave_monthcl)
+                                + int(employee_leave.excess_leave_monthhalf)
+                                + int(employee_leave.excess_leave_monthsl)
+                                + int(employee_leave.excess_leave_yrcl)
+                                + int(employee_leave.excess_leave_yrhalf)
+                                + int(employee_leave.excess_leave_yrsl)
+                            )
+                            leave_reduction = int(excess_leave) * int(payperDay)
+                            employee_leave.status = Status.objects.get(status_id=2)
+                            employee_leave.save()
 
+                        except EmployeeLeave.DoesNotExist:
+                            leave_reduction = 0
+
+                        total_salary = (
+                            int(salaryForthisMonth)
+                            + int(totalBonus)
+                            - int(totalReduction)
+                            - int(leave_reduction)
+                        )
+
+                        salary_model = employeeSalary()
+                        salary_model.employee = Employees.objects.get(
+                            employee_id=employee.employee_id
+                        )
+                        salary_model.base_package = salaryForthisMonth
+                        salary_model.salary_month = Month.objects.get(month_id=salaryMonth)
+                        salary_model.total_bonus = totalBonus
+                        salary_model.total_reduction = totalReduction
+                        salary_model.leave_reductions = leave_reduction
+                        salary_model.generated_salary = math.floor(total_salary)
+                        salary_model.status = Status.objects.get(status_id=1)
+                        salary_model.other_status = 2
+                        salary_model.save()
+                        bonusModel = Bonus.objects.filter(
+                            employee=employee, bonus_month=salaryMonth
+                        )
+                        for bonus in bonusModel:
+                            bonus.status = 2
+                            bonus.save()
+                        reductionModel = Reduction.objects.filter(
+                            employee=employee, reduction_month=salaryMonth
+                        )
+                        for reduction in reductionModel:
+                            reduction.status = 2
+                            reduction.save()
+                        salaryModel.other_status = 2
+                        salaryModel.save()
+                    except employeeSalary.DoesNotExist:
+                        continue
                 if not salary_exists:
-                    payperDay = int(employee.base_package) / int(daysperMonth)
+                    
                     bonuses = Bonus.objects.filter(
-                        employee=employee, bonus_month=salaryMonth
+                        employee=employee, bonus_month=salaryMonth,status_id=1
                     )
                     totalBonus = sum(bonus.bonus_amount for bonus in bonuses)
                     reductions = Reduction.objects.filter(
-                        employee=employee, reduction_month=salaryMonth
+                        employee=employee, reduction_month=salaryMonth,status_id=1
                     )
                     totalReduction = sum(
                         reduction.reduction_amount for reduction in reductions
@@ -318,12 +409,14 @@ def salary(request):
                             + int(employee_leave.excess_leave_yrsl)
                         )
                         leave_reduction = int(excess_leave) * int(payperDay)
-                        
+                        employee_leave.status = Status.objects.get(status_id=2)
+                        employee_leave.save()
+
                     except EmployeeLeave.DoesNotExist:
                         leave_reduction = 0
 
                     total_salary = (
-                        int(employee.base_package)
+                        int(salaryForthisMonth)
                         + int(totalBonus)
                         - int(totalReduction)
                         - int(leave_reduction)
@@ -333,13 +426,14 @@ def salary(request):
                     salary_model.employee = Employees.objects.get(
                         employee_id=employee.employee_id
                     )
-                    salary_model.base_package = employee.base_package
+                    salary_model.base_package = salaryForthisMonth
                     salary_model.salary_month = Month.objects.get(month_id=salaryMonth)
                     salary_model.total_bonus = totalBonus
                     salary_model.total_reduction = totalReduction
                     salary_model.leave_reductions = leave_reduction
                     salary_model.generated_salary = math.floor(total_salary)
                     salary_model.status = Status.objects.get(status_id=1)
+                    salary_model.other_status = 2
                     salary_model.save()
                     bonusModel = Bonus.objects.filter(
                         employee=employee, bonus_month=salaryMonth
@@ -353,25 +447,11 @@ def salary(request):
                     for reduction in reductionModel:
                         reduction.status = 2
                         reduction.save()
-                        
-                    employee_leave.status = Status.objects.get(status_id=2)
-                    employee_leave.save()
-                        
-                return JsonResponse({"success": True}, status=201)
-            except employeeSalary.DoesNotExist:
-                return JsonResponse({"error":"Salary Details Not Found"},status=404)
-            except Bonus.DoesNotExist:
-                return JsonResponse({"error":"Bonus Details Not Found"},status=404)
-            except Reduction.DoesNotExist:
-                return JsonResponse({"error":"Reduction Details Not Found"},status=404)
-            except Employees.DoesNotExist:
-                return JsonResponse({"error":"Employee Details Not Found"},status=404)
-            except Month.DoesNotExist:
-                return JsonResponse({"error": "Month Not Found"}, status=404)
-            except Status.DoesNotExist:
-                return JsonResponse({"error": "Status Not Found"}, status=404)
-            except Exception as e:
-                return JsonResponse({"error": str(e)}, status=500)
+                    
+            return JsonResponse({"success": True}, status=201)
+        except Exception as e:
+            return JsonResponse({"error":str(e)},status=500)
+            
     else:
         return JsonResponse({"error":"Invalid Method"},status=405)
 
@@ -704,155 +784,171 @@ def generatesalarymonth(request):
         salaryMonth = thisMonth
         numDays = calendar.monthrange(thisYear, salaryMonth)
         daysperMonth = numDays[1]
-        # try:
-        employees = Employees.objects.get(employee_id=employee_id)
-        monthObject = Month.objects.get(month_id=salaryMonth)
-        if employeeSalary.objects.filter(
-            employee=employees, salary_month=monthObject
-        ).exists():
-            print(employees)
-            print(salaryMonth)
-            return JsonResponse({"success": "Done"}, status=200)
-        else:
-            salaryModel = employeeSalary()
-            salaryModel.employee = employees
-            payperDay = int(employees.base_package) / int(daysperMonth)
-            workingDays = today.day
-            amountThismonth = payperDay * workingDays
-            bonuses = Bonus.objects.filter(
-                employee=employee_id, bonus_month=salaryMonth, status=1
-            )
-            totalBonus = sum(bonus.bonus_amount for bonus in bonuses)
-            reductions = Reduction.objects.filter(
-                employee=employee_id, reduction_month=salaryMonth, status=1
-            )
-            totalReduction = sum(reduction.reduction_amount for reduction in reductions)
-            try:
-                employee_leave = EmployeeLeave.objects.get(
-                    employee=employee_id, for_month=salaryMonth,status_id=1,for_year=thisYear
-                )
-                excess_leave = (
-                    int(employee_leave.excess_leave_monthcl)
-                    + int(employee_leave.excess_leave_monthhalf)
-                    + int(employee_leave.excess_leave_monthsl)
-                    + int(employee_leave.excess_leave_yrcl)
-                    + int(employee_leave.excess_leave_yrhalf)
-                    + int(employee_leave.excess_leave_yrsl)
-                )
-                leave_reduction = int(excess_leave) * int(payperDay)
+        try:
+            employees = Employees.objects.get(employee_id=employee_id)
+            monthObject = Month.objects.get(month_id=salaryMonth)
+            if employeeSalary.objects.filter(
+                employee=employees, salary_month=monthObject
+            ).exists():
+                print(employees)
+                print(salaryMonth)
+                return JsonResponse({"success": "Done"}, status=200)
+            else:
                 
-            except EmployeeLeave.DoesNotExist:
-                leave_reduction = 0
-
-            total_salary = (
-                int(amountThismonth)
-                + int(totalBonus)
-                - int(totalReduction)
-                - int(leave_reduction)
-            )
-
-            salary_model = employeeSalary()
-            salary_model.employee = Employees.objects.get(
-                employee_id=employees.employee_id
-            )
-            salary_model.base_package = amountThismonth
-            salary_model.salary_month = Month.objects.get(month_id=salaryMonth)
-            salary_model.total_bonus = totalBonus
-            salary_model.total_reduction = totalReduction
-            salary_model.leave_reductions = leave_reduction
-            salary_model.generated_salary = math.floor(total_salary)
-            salary_model.status = Status.objects.get(status_id=2)
-            salary_model.save()
-            salaryYear = datetime.now().year
-            monthDetails = Month.objects.get(month_id=salaryMonth)
-            employeeDetails = Employees.objects.filter(employee_id=employee_id)
-            for employees in employeeDetails:
-                id = employees.employee_id
-                basePackage = employees.base_package
+                payperDay = int(employees.base_package) / int(daysperMonth)
+                workingDays = today.day
+                amountThismonth = payperDay * workingDays
+                bonuses = Bonus.objects.filter(
+                    employee=employee_id, bonus_month=salaryMonth, status_id=1
+                )
+                totalBonus = sum(bonus.bonus_amount for bonus in bonuses)
+                reductions = Reduction.objects.filter(
+                    employee=employee_id, reduction_month=salaryMonth, status_id=1
+                )
+                totalReduction = sum(reduction.reduction_amount for reduction in reductions)
                 try:
-
-                    employeeleaveStatus = EmployeeLeave.objects.get(
-                        employee_id=id,
-                        for_month_id=monthDetails.month_id,
-                        for_year=salaryYear,status_id=1
+                    employee_leave = EmployeeLeave.objects.get(
+                        employee=employee_id, for_month=salaryMonth,status_id=1,for_year=thisYear
                     )
+                    excess_leave = (
+                        int(employee_leave.excess_leave_monthcl)
+                        + int(employee_leave.excess_leave_monthhalf)
+                        + int(employee_leave.excess_leave_monthsl)
+                        + int(employee_leave.excess_leave_yrcl)
+                        + int(employee_leave.excess_leave_yrhalf)
+                        + int(employee_leave.excess_leave_yrsl)
+                    )
+                    leave_reduction = int(excess_leave) * int(payperDay)
+                    
                 except EmployeeLeave.DoesNotExist:
-                    continue
+                    leave_reduction = 0
 
-                excessClYear = employeeleaveStatus.excess_leave_yrcl
-                excessSlYear = employeeleaveStatus.excess_leave_yrsl
-                excessHalfDaysYear = employeeleaveStatus.excess_leave_yrhalf
-                excessClMonth = employeeleaveStatus.excess_leave_monthcl
-                excessSlMonth = employeeleaveStatus.excess_leave_monthsl
-                excessHalfDaysMonth = employeeleaveStatus.excess_leave_monthhalf
-                totalExcesss = (
-                    excessClYear
-                    + excessSlYear
-                    + excessHalfDaysYear
-                    + excessClMonth
-                    + excessSlMonth
-                    + excessHalfDaysMonth
+                
+
+                total_salary = (
+                    int(amountThismonth)
+                    + int(totalBonus)
+                    - int(totalReduction)
+                    - int(leave_reduction)
                 )
 
-                numDays = calendar.monthrange(salaryYear, salaryMonth)
-                daysperMonth = numDays[1]
-                payperDay = basePackage / daysperMonth
+                salary_model = employeeSalary()
+                salary_model.employee = Employees.objects.get(
+                    employee_id=employees.employee_id
+                )
+                salary_model.base_package = amountThismonth
+                salary_model.salary_month = Month.objects.get(month_id=salaryMonth)
+                salary_model.total_bonus = totalBonus
+                salary_model.total_reduction = totalReduction
+                salary_model.leave_reductions = leave_reduction
+                salary_model.generated_salary = math.floor(total_salary)
+                salary_model.status = Status.objects.get(status_id=2)
+                salary_model.other_status = 1
+                salary_model.save()
 
-                if leaveReductions.objects.filter(
-                    employee_id=id, for_month=monthDetails, for_year=thisYear
-                ).exists():
-                    continue
-                leaveReductionModel = leaveReductions()
-                leaveReductionModel.employee = Employees.objects.get(employee_id=id)
-                leaveReductionModel.pay_per_day = payperDay
-                leaveReductionModel.total_excess_leave = totalExcesss
-                leaveReductionModel.reduction_amount = payperDay * totalExcesss
-                leaveReductionModel.excess_leave_monthcl = excessClMonth
-                leaveReductionModel.excess_leave_monthhalf = excessHalfDaysMonth
-                leaveReductionModel.excess_leave_monthsl = excessSlMonth
-                leaveReductionModel.excess_leave_yrcl = excessClYear
-                leaveReductionModel.excess_leave_yrhalf = excessHalfDaysYear
-                leaveReductionModel.excess_leave_yrsl = excessSlYear
-                leaveReductionModel.for_month = monthDetails
-                leaveReductionModel.for_year = thisYear
-                leaveReductionModel.save()
                 
-            bonuses = Bonus.objects.filter(
-                employee=employee_id, bonus_month=salaryMonth, status_id=1
-            )
-            for bonus in bonuses:
-                bonus.status = Status.objects.get(status_id=2)
-                bonus.save()
-            reductions = Reduction.objects.filter(
-                employee=employee_id, reduction_month=salaryMonth, status=1
-            )
-            for reduction in reductions:
-                reduction.status = Status.objects.get(status_id=2)
-                reduction.save()
-            employeeleaveModel = EmployeeLeave.objects.get(
-                employee=employees, for_month=monthObject
-            )
-            employeeleaveModel.sick_leaves_monthly = 0
-            employeeleaveModel.casual_leaves_monthly = 0
-            employeeleaveModel.half_day_leaves_monthly = 0
-            employeeleaveModel.excess_leave_monthcl = 0
-            employeeleaveModel.excess_leave_monthhalf = 0
-            employeeleaveModel.excess_leave_monthsl = 0
-            employeeleaveModel.save()
-            
-            employee_leave.status = Status.objects.get(status_id=2)
-            employee_leave.save()
-            return JsonResponse({"success": True}, status=200)
+                salaryYear = datetime.now().year
+                monthDetails = Month.objects.get(month_id=salaryMonth)
+                employeeDetails = Employees.objects.filter(employee_id=employee_id)
+                for employees in employeeDetails:
+                    id = employees.employee_id
+                    basePackage = employees.base_package
+                    try:
+
+                        employeeleaveStatus = EmployeeLeave.objects.get(
+                            employee_id=id,
+                            for_month_id=monthDetails.month_id,
+                            for_year=salaryYear,status_id=1
+                        )
+                    except EmployeeLeave.DoesNotExist:
+                        continue
+
+                    excessClYear = employeeleaveStatus.excess_leave_yrcl
+                    excessSlYear = employeeleaveStatus.excess_leave_yrsl
+                    excessHalfDaysYear = employeeleaveStatus.excess_leave_yrhalf
+                    excessClMonth = employeeleaveStatus.excess_leave_monthcl
+                    excessSlMonth = employeeleaveStatus.excess_leave_monthsl
+                    excessHalfDaysMonth = employeeleaveStatus.excess_leave_monthhalf
+                    totalExcesss = (
+                        excessClYear
+                        + excessSlYear
+                        + excessHalfDaysYear
+                        + excessClMonth
+                        + excessSlMonth
+                        + excessHalfDaysMonth
+                    )
+                    employeeleaveStatus.status = Status.objects.get(status_id=2)
+                    employeeleaveStatus.save()
+
+                    
+                    numDays = calendar.monthrange(salaryYear, salaryMonth)
+                    daysperMonth = numDays[1]
+                    payperDay = basePackage / daysperMonth
+                    
+                    if leaveReductions.objects.filter(
+                        employee_id=id, for_month=monthDetails, for_year=thisYear
+                    ).exists():
+                        continue
+                    leaveReductionModel = leaveReductions()
+                    leaveReductionModel.employee = Employees.objects.get(employee_id=id)
+                    leaveReductionModel.pay_per_day = payperDay
+                    leaveReductionModel.total_excess_leave = totalExcesss
+                    leaveReductionModel.reduction_amount = payperDay * totalExcesss
+                    leaveReductionModel.excess_leave_monthcl = excessClMonth
+                    leaveReductionModel.excess_leave_monthhalf = excessHalfDaysMonth
+                    leaveReductionModel.excess_leave_monthsl = excessSlMonth
+                    leaveReductionModel.excess_leave_yrcl = excessClYear
+                    leaveReductionModel.excess_leave_yrhalf = excessHalfDaysYear
+                    leaveReductionModel.excess_leave_yrsl = excessSlYear
+                    leaveReductionModel.for_month = monthDetails
+                    leaveReductionModel.for_year = thisYear
+                    leaveReductionModel.save()
+                    
+                bonuses = Bonus.objects.filter(
+                    employee=employee_id, bonus_month=salaryMonth, status_id=1
+                )
+                for bonus in bonuses:
+                    bonus.status = Status.objects.get(status_id=2)
+                    bonus.save()
+                reductions = Reduction.objects.filter(
+                    employee=employee_id, reduction_month=salaryMonth, status_id=1
+                )
+                for reduction in reductions:
+                    reduction.status = Status.objects.get(status_id=2)
+                    reduction.save()
+
+                NewemployeeleaveModel = EmployeeLeave()
+                thisMonth = datetime.now().month
+                thisYear = datetime.now().year
+                print(thisYear)
+                NewemployeeleaveModel.employee = employees
+                NewemployeeleaveModel.casual_leaves_monthly = 0
+                NewemployeeleaveModel.casual_leaves_yr = 0
+                NewemployeeleaveModel.sick_leaves_monthly = 0
+                NewemployeeleaveModel.sick_leaves_yr = 0
+                NewemployeeleaveModel.half_day_leaves_monthly = 0
+                NewemployeeleaveModel.half_day_leaves_yr = 0
+                NewemployeeleaveModel.for_year = thisYear
+                NewemployeeleaveModel.for_month = Month.objects.get(month_id=thisMonth)
+                NewemployeeleaveModel.excess_leave_yrsl = 0
+                NewemployeeleaveModel.excess_leave_yrhalf = 0
+                NewemployeeleaveModel.excess_leave_yrcl = 0
+                NewemployeeleaveModel.excess_leave_monthsl = 0
+                NewemployeeleaveModel.excess_leave_monthcl = 0
+                NewemployeeleaveModel.excess_leave_monthhalf = 0
+                NewemployeeleaveModel.status = Status.objects.get(status_id=1)
+                NewemployeeleaveModel.save()
+                return JsonResponse({"success": True}, status=200)
         
                 
-        # except Employees.DoesNotExist:
-        #     return JsonResponse({"error": "Employee not found"}, status=404)
-        # except Month.DoesNotExist:
-        #     return JsonResponse({"error": "Month not found"}, status=404)
-        # except Status.DoesNotExist:
-        #     return JsonResponse({"error": "Status not found"}, status=404)
-        # except Exception as e:
-        #     return JsonResponse({"error": str(e)}, status=500)
+        except Employees.DoesNotExist:
+            return JsonResponse({"error": "Employee not found"}, status=404)
+        except Month.DoesNotExist:
+            return JsonResponse({"error": "Month not found"}, status=404)
+        except Status.DoesNotExist:
+            return JsonResponse({"error": "Status not found"}, status=404)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
     else:
         return JsonResponse({"error":"Invalid Method"},status=405)
 

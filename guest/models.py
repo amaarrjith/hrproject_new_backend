@@ -126,7 +126,8 @@ class employeeSalary(models.Model):
     leave_reductions = models.BigIntegerField()
     generated_salary = models.BigIntegerField()
     status = models.ForeignKey(Status,on_delete=models.CASCADE)
-
+    other_status = models.IntegerField()
+    
     def __str__(main):
         return main.salary_id
     
